@@ -1,0 +1,496 @@
+agent_id,first_name,last_name,tl_id,department_id,start_date
+1,Alberto,Abad,3,1,2024-10-14
+2,Alexander,Mateo,0,1,
+3,Andres,Ortiz,0,1,2023-10-02
+4,Antonio,Verrazzo,0,1,
+5,Beatriz,Gonzalez Bradley,0,1,2024-12-16
+6,Cristina,Gonzalez,2,2,2023-06-03
+7,Davide,Bellini,3,1,2023-01-30
+8,Dimitri,Lesueur,1,1,2024-10-01
+9,Edson,Yao,3,1,2024-08-01
+10,Eni,Dade,1,1,2025-01-02
+11,Erica,Pereira,45,1,2024-10-14
+12,Ettore,Mauro,0,1,
+13,Eugenio,Cirillo,2,3,2022-06-01
+14,Gergana,Lakerova,3,1,2024-10-21
+15,Gonzalo,Aparicio,0,1,
+16,Irene,Anguita,1,1,2022-11-14
+17,Iria,Lopez,0,19,
+18,Jennifer,Jabre,0,1,
+19,Lena,Hassdenteufel,3,1,2023-05-24
+20,Maddalena,Piceni,0,1,
+21,Marcelo,Raimundo,1,1,2024-12-16
+22,Maria del Pino,Valdes,0,3,
+23,Maria,Hormigo Vazquez,1,1,2024-06-17
+24,Marta,Moreno,1,1,2025-06-01
+25,Mathilde,Racineux,45,1,2024-12-15
+26,Nicola,Cramarossa,2,3,2022-06-01
+27,Nicolas,Rodriguez,2,3,2022-06-01
+28,Omar,Prado,1,1,2023-05-22
+29,Patricia,Diez,45,1,2023-05-22
+30,Randy,Bondjanga,0,1,
+31,Roberto,Petris,0,1,
+32,Sabra,Radouane,3,1,2023-03-06
+33,Silvia Adriana,Domingo Puga,1,1,2023-03-06
+34,Simone,Lazzaroni,0,1,
+35,Steven,Suberbere,3,1,2025-01-15
+36,Susana,Marques,3,1,2022-06-01
+37,Alvaro,Palop,2,2,2024-01-06
+38,Andres,Leon Luzardo,2,2,2022-06-01
+39,Juan Carlos,Sanchez Collazos,0,2,2022-06-01
+40,Karolina,Bravo Wandeur,2,2,2022-06-01
+41,Lydia,Joseph,2,2,2022-06-01
+42,Mohamed,Abidi,2,2,2022-06-01
+43,Rodney,Omabegho,0,2,
+44,Gema,Martinez,0,1,
+45,Isabella,Jimenez,0,1,
+46,Carlos Daniel,Guanchez Peña,0,19,
+47,Miguel,Da Piedade Soares,0,19,
+48,Aris Maximilian,Kuhs,0,1,
+49,Anna,Gnich,25,28,2021-11-01
+50,Anna,Salmi,0,7,
+51,Anne,Lindstrom,18,7,2024-07-15
+52,Cecilia,Groop,18,7,
+53,Cecilia,Ydström,8,7,2024-03-01
+54,Christoffer,Sjödin,8,7,2024-03-01
+55,Cirilo,Porto,25,7,2023-06-01
+56,Daniel,Karlsson,15,7,2024-03-01
+57,Darko,Beranic,25,28,2022-03-01
+58,Dorine,Louis,0,7,
+59,Eileen,Culverhouse,23,28,2024-04-08
+60,Emma,Hemmingsson,18,7,2025-03-03
+61,Francois,Girold,25,28,2023-05-10
+62,Glenn,Connolly,25,28,2023-02-07
+63,Helena,Anderson,8,7,2024-03-01
+64,Jessica,Stranger,25,7,2023-06-05
+65,Joanna,Dziedzic,25,28,2022-09-19
+66,Karolina,Moore,41,7,2013-09-01
+67,Katja,Cabaret,8,7,2024-03-01
+68,Laura,O'Neill,41,7,2024-06-04
+69,Lorna,Baker,41,7,2005-02-20
+70,Lucas,Alex,18,7,2024-03-01
+71,Madhura,Halkare,41,7,2024-05-13
+72,Marcus,Engelin,18,7,2024-03-01
+73,Mattias,Lilliehook,10,7,2024-03-01
+74,Mikael,Lindberg,16,7,2024-07-15
+75,Nicholas,Faulkner,18,7,2024-07-15
+76,Patrik,Von Köhler,8,7,2024-03-01
+77,Sandra,Berglow,18,7,2024-09-16
+78,Sasa,Mogorovic,23,7,2024-03-01
+79,Selle,Kandji,25,28,2019-10-03
+80,Steven,Donegan,22,7,2024-03-01
+81,Susan,Sjoberg,8,7,2024-03-01
+82,Thomas,Nielsen,17,7,2024-03-01
+83,Yvonne,Boran,23,7,2024-03-01
+84,Abdellatif,Jaouny,32,23,2019-03-06
+85,Adam,Kordina,13,9,2024-03-01
+86,Ahmed,Abdelhalim,13,9,2025-01-01
+87,Alicia,Phoumsavanh,32,23,2023-06-19
+88,Alistair,Bolton,12,6,2010-07-05
+89,Amirhossein,Nazari,13,9,2024-08-15
+90,Andi,Deva,7,8,2024-04-01
+91,Andreas,Horenburg,6,6,2024-05-01
+92,Angelika,Skrzek,13,9,2024-11-01
+93,Antonia,Apatic,24,5,2020-09-01
+94,Busch,Sebastian,6,4,2024-02-26
+95,Carina,Montesi,7,8,2024-06-01
+96,Cedric,Halgand,12,6,2012-09-10
+97,Daniel,Pintev,24,5,2023-04-24
+98,David,Gombos,13,9,2024-07-15
+99,Edvina,Deva,21,9,2022-01-01
+100,Customer Support,Dispatch,0,1,
+101,Elisabeth,WeiTian König,14,5,2024-01-01
+102,Elizabeth,Finger,24,4,2023-04-17
+103,Emmanuel,Okwuiwe,13,9,2024-06-01
+104,Ena,Sola,13,5,2024-09-01
+105,Erarslan,Seval,21,8,2024-07-04
+106,Fabian,Pelikan,13,11,2025-03-31
+107,Fabio,Librizzi,24,5,2017-08-01
+108,Faical,DRIBI,32,23,2023-03-27
+109,Farina,Teschendorf,24,4,2024-02-26
+110,Florian,Kidschun,7,6,2024-01-01
+111,Foteini,Roumelioti,19,9,
+112,Frederik,Mende,6,10,2024-01-01
+113,Gauthier,Thomas,24,4,2024-01-01
+114,Giorgi,Totikashvili,21,8,2024-01-01
+115,Gommert,Simone,25,9,2024-01-01
+116,Grümer,Jessica,7,6,2024-01-01
+117,Hamza,Selmani,32,23,2024-01-01
+118,Henk,Wassink,40,9,2022-03-01
+119,Hoppe,Svenja,21,8,2024-01-01
+120,Ivie,Ogbevoen,13,9,2024-10-15
+121,Jacqueline,Baron,24,4,2024-02-26
+122,Janin,Janoschka,21,11,2024-01-01
+123,Juan,Facundo Colombo,24,5,2025-06-02
+124,Julien,Dupré,24,5,2017-03-20
+125,Kamal,Singh,24,5,2024-09-01
+126,Kathrin,Cobi,24,5,2011-04-01
+127,Kim,Mertens,24,5,2015-01-01
+128,Laura,Resch,19,9,
+129,Leonard,Belligoi,12,10,2024-01-01
+130,Leonie,Hoppe,24,10,2013-01-02
+131,Lina,Stahl,24,4,2024-02-26
+132,Magdalena Anna,Drzewiecka,7,8,2023-08-01
+133,Manal,Aassila,32,23,2023-02-20
+134,Marcel,Kiliman,12,6,2019-10-01
+135,Marie-Emelyne,Horatius,9,23,2023-03-27
+136,Mathias,von Hermanni,10,5,2024-01-01
+137,Melinda,Lakatos,13,9,2024-07-01
+138,Michael,Becker,24,5,2016-10-01
+139,Miriyana,Gacic,7,8,2024-07-01
+140,Mirko,Bokanovic,13,8,2025-03-31
+141,Moriz,Leszkovsky,24,5,2024-06-01
+142,Nawfal,Bassouri,20,24,2024-06-01
+143,Paul-Philip,Lempe,10,8,2024-02-01
+144,Philipp,Potthöfer,7,9,
+145,Rinola,Sheqeri,12,10,2023-09-25
+146,Ritter,Nils,7,6,2024-01-01
+147,Sabrina,Naumann,12,10,2017-08-01
+148,Salah,Hasraoui,32,23,2020-01-20
+149,Salome,Zenz,19,9,
+150,Sara,Kovacs,13,9,2024-08-01
+151,Sarah,Anger,9,23,2023-05-15
+152,Schwarz,Kai,11,9,2024-01-01
+153,Serenia,Amponsah,40,9,2024-07-15
+154,Soukaina,Elansari,32,23,2018-05-03
+155,Starke,Daniel,12,10,2024-02-26
+156,Svetlana,Martysevich,6,8,2024-04-15
+157,Tim,Kotolenko,7,8,2024-06-01
+158,Tim,Simon,36,5,2024-01-01
+159,Tsartsampalidis,Athanasios,11,9,2024-01-01
+160,Tuschen,Max,24,4,2024-02-26
+161,Willars,Michael,11,9,2024-01-01
+162,Wolf,Clemens,21,8,2024-01-01
+163,Wolff,Helen,11,9,2024-01-01
+164,Amrani,Younes ,20,23,2024-01-01
+165,Bourhnou,Zakariae ,20,23,2024-01-01
+166,Ehab,Bedaiwy,12,11,2022-01-01
+167,Nadine,Hasselmann,0,4,
+168,Liselot,Hermans,0,51,
+169,Svenja,Hoppe,12,11,2021-06-01
+170,Martyna ,Grzebisz,0,60,
+171,Anna,Potwardowska,0,58,
+172,Anhel,Kowalewski,0,48,
+173,Billing,Billing,0,58,
+174,Michal,Moch,0,58,
+176,Mikolaj,Baran,0,58,
+177,Georgina,Walsh,41,7,2025-08-01
+178,Viktoria,Justus,45,1,2025-06-01
+179,Jennifer,Fenzel,0,47,
+180,Pranjali,Gorthekar,25,7,
+181,Paulina,Szczepanik,0,19,
+182,Andrea,Tole,13,9,2025-08-01
+183,Ewa,Kowalska,0,9,
+184,Alexander,Schemet,0,65,
+185,Oliwia,Jansienkow,0,60,
+191,Hospitality,Protel PMS Dispatch,0,4,
+192,Hospitality,Protel PMS Integrations,0,5,
+193,Hospitality,Protel PMS Keyaccount,0,6,
+194,Hospitality,Protel PMS Cloud,0,8,
+195,Hospitality,Protel PMS Distribution,0,4,
+196,Chantal,Heritier,41,7,2025-07-14
+197,Faisal,Aman,7,8,2025-08-01
+198,Svitlana,Liulko,13,9,2025-08-04
+200,L2,Customer Support,0,2,
+201,Anna,Sajda,27,22,
+202,Anna,Wierzbicka,28,67,
+204,Carolina,Badillo,0,14,
+205,"Luca	",Gaballo,30,112,
+206,Denise,Vielhaber,11,9,2023-06-01
+207,EinsteinServiceAgent,User,0,35,
+208,Agentforce Generic ,Queue,0,35,
+209,Zakariae,Bourhnou,32,23,2023-05-22
+210,Mohamed,Amine Chbani,32,23,2020-02-03
+211,Hamza,LOULICHKI,32,23,2025-08-01
+212,Paulina,Rykiel,0,68,
+213,Marc,Vogel,33,45,
+214,Agnieszka,Fabich-Ren,0,68,
+215,David,Kohan Valenzuela,34,20,
+216,Beata,Suska,0,34,
+217,Gagro,Marina,25,9,
+218,Hospitality,HotSoft PMS Dispatch,0,7,
+219,Hospitality,Protel PMS onPrem,0,9,
+220,Zakaria,Idmouh,32,23,2025-08-01
+221,Boubker,Bouhanou,0,8,
+222,Paschen,Eva,0,9,
+223,Vincent,Ekekwe,0,62,
+224,Natalia,Szymanska,0,48,
+225,Alain,Murenzi,0,48,
+226,Hubert,Ciesla,0,48,
+227,Anna,Czyz,0,48,
+228,Bartlomiej,Ornoch,0,48,
+229,Hubert,Ciesla,0,48,
+230,Jasmin,Abulgasem-Mohamed,0,34,
+231,Mariya,Glocke,0,9,
+232,Vasco,Reis,0,26,
+233,Marina,Schnittker,0,45,
+234,Maciej,Szlezinger,0,7,
+235,Imane,Elkessi,41,7,2025-08-01
+236,Christina,Song,39,57,
+237,Sophia,Yu,39,57,
+238,Lindadeirdre,Ehimare,39,57,
+239,Mattia,Zordan Andrioli,45,1,2026-01-01
+240,Diana,Swidlicka,0,35,
+241,Roisin,McGlinchey,0,35,
+242,Milena,Sidor,0,60,
+243,Datatrans,Support,0,35,
+244,Oliwia,Pietrasinska,0,60,
+245,Andrea,Wuttke,0,45,
+246,Jamie,McCarthy,25,7,
+247,Gabriel,Zambrano,45,1,
+248,Mahran,Boussetta,45,1,
+249,Patrycja,Siuta,1,1,
+300,Payments Acquiring,Dispatch,0,3,
+301,Joao,Fernandes,0,26,
+302,Weronika,Budzisz,23,7,
+400,Hoist,Hoist,8,7,
+500,Protel,Protel,22,9,
+501,Alessandro,Anton,0,1,
+502,Sergio,Gonzalez,0,1,
+503,Jakub,Suchna,0,2,
+504,Rebecca,Gianforcaro,0,1,
+505,Andrea,Araneo,0,1,
+506,Gema,Terradillos,0,1,
+507,Werchau,Jana,0,9,
+508,Wanderlei,Bonetti,0,14,
+509,Vanessa,Piotrowski,0,4,
+510,Yisihak,Gebremariam,0,1,
+511,Tiago,Pinheiro,0,1,
+512,Therese Harp,Stubberud,0,7,
+513,Stuart,Bredenkamp,0,26,
+514,Soubhiya, Aashi,0,11,
+515,Souad,Monadile,0,1,
+516,Sonam,Singh,0,26,
+517,Sophie,Labrid,0,7,
+518,Silvia,Araña,0,1,
+519,Solveig,Kristiansen,0,7,
+520,Sijan,Dahal,0,9,
+521,Sheila,Amaro,0,1,
+522,Sergio,Levi,0,7,
+523,Schachtsiek ,Heike,0,9,
+524,Sarah,Thomas,0,7,
+525,Sanja,Yadav,0,29,
+526,Samuli,Lintula,0,1,
+527,Sameer,Thabet,0,17,
+528,Roberto,Salazar,0,26,
+529,Roberto,Portagnuolo,0,1,
+530,Roberto,Atencio,0,26,
+531,Ricardo,Raposo,0,26,
+532,Raquel,Cubillo,0,1,
+533,Ricardo,Fonseca,0,11,
+534,Raquel,Baos,0,28,
+535,Rajesh,Chittam,0,21,
+536,Rainer,Amling,0,8,
+537,Rafael,Reviejo,0,1,
+538,Rafael,Jesus,0,26,
+539,Quentin,Galliano,0,28,
+540,Elisabeth,Plank,0,4,
+541,Pierre,Jung,0,16,
+542,Philippe,Bord,0,16,
+543,Peryt,Marlena,0,9,
+544,Pedro,Maia,0,26,
+545,Pedro,Jacinto,0,26,
+546,Payments,Exceptions,0,1,
+547,Olga,Loewens,0,9,
+548,Odilia,Pereira,0,28,
+549,Nizar,Ettazi,0,26,
+550,Marta,Rodrigues,0,26,
+551,Marta,Palazuelo,0,28,
+552,Mario,Martinelli,42,18,2025-07-01
+553,Marianna,Hernandez,0,1,
+555,Marco,Brunetti,0,26,
+556,Malika,Aitmammar,0,28,
+558,Luis,Gonzalez,0,26,
+559,Luis Daniel,Zegri Salazar,0,25,
+560,Natalie,Wong,43,12,2024-04-15
+561,Natalie,Lau,0,12,
+562,Natalia,Magalhaes,0,1,
+563,Natalia,Fraczak,0,3,
+564,Mubeer,Meethal,0,21,
+565,Mouad,Fait,0,26,
+566,Monir,Hossain,0,26,
+567,Monica,Mota,0,26,
+568,Mohammed,Ameziane,0,28,
+569,Mohammad,Mahbubul Alam,0,28,
+570,Mohamed,Alhelaly,0,26,
+571,Miguel,Macias,0,1,
+572,Miguel,Contreiras,0,26,
+573,Michael,Murray,25,28,2007-10-01
+574,Michele,Bartels,0,9,
+575,Maximo,Caldeira,0,26,
+576,Maud,Couchot,44,16,2024-03-01
+577,Matthias,Bunte,0,9,
+578,Mathieu,Quambusch,0,11,
+579,Mateusz,Tyminski,0,28,
+580,Luis,Coba Colli,29,14,2019-11-04
+582,Louis,La-Selva,44,16,2024-03-01
+583,Lionel,Miquelina,0,26,
+584,Lindsay,Cammay,0,26,
+585,Liliana,Guedes,0,26,
+586,Leonor,Diaz,0,28,
+588,Laura,Bixhi,0,1,
+589,Lara Anissa,Becker,0,10,
+590,Kiliman,Marcel,0,10,
+591,Kidschun,Florian,0,6,
+592,Kevin,Philip,43,13,2022-09-28
+593,Kenneth,Pulliam,0,15,
+594,Karim,Sallam,0,26,
+595,Kadir,Gul,0,26,
+596,Julien,Bellet,0,26,
+597,Julian,Kaufmann,0,1,
+598,Jose,Narciso,0,26,
+599,Jonathan,Carajoinas,0,26,
+600,Jonas,Mohr,0,26,
+601,John,Chifodya,0,26,
+602,Joao,Fermandes,0,26,
+603,Jessica,Jacques,43,13,2022-08-22
+604,Jerome,Luong,0,30,
+605,Izak,Saaiman,0,26,
+606,Ismail,Akbiyik,0,26,
+607,Huma,Tariq,0,9,
+608,Hospitality,Protel,0,4,
+609,Henrike,Tillmann,21,9,2012-02-13
+610,Heike,Schachtsiek,0,9,
+611,Heidi,Reyes,29,14,2022-11-21
+612,Hector,Martin,0,26,
+613,Nadine,Hasselmann,0,4,
+614,Hans,Danowski,0,26,
+615,Guillaume,Angsthelm,44,16,2024-03-01
+616,Michael,Guggenbichler,0,6,
+617,Florian,Englert,0,11,
+618,Carola,Lothe,0,7,
+619,Giorgio,Cucuzza,0,3,
+620,Gladstone,Amable,0,26,
+621,Filip,Kornatka,0,1,
+622,Filip,Hansson,0,1,
+623,Felix,Siems,0,11,
+624,Fanny,Chang,43,12,2009-09-01
+625,Falilou,Memoko,0,11,
+626,Fabio,Silva,0,26,
+627,Fabio,Pasquale,0,11,
+628,Evie,Loo,46,12,2023-02-27
+629,Etienne,Sihr,44,16,2024-03-01
+630,Etiandro,Vaz,0,26,
+631,Ermal,Lamce,0,10,
+632,Elie,Faes Cortes,0,7,
+633,Elena,Waldburger,0,26,
+634,Dragos,Ambrosie,0,7,
+635,Domenico,La Manna,0,1,
+636,Denis,Palu,0,21,
+637,Dariusz,Kaczmarczyk,0,5,
+638,David,Martinez,0,1,
+639,Cristiano,Marques,0,26,
+640,Clarenz,Bettina,0,9,
+641,Civaj,Roman,0,9,
+642,Cintia,Pires,0,15,
+643,Christophe,Lepage,42,21,2014-08-18
+644,Catia,Mendes,0,1,
+645,Carlos,Arvizu,42,21,2021-12-06
+647,Brayan,Delgado,0,11,
+648,Bjorn,Lundin,0,26,
+649,Bisal,Ghale,0,26,
+650,Mohamed ElAssabgy,Bassant,0,26,
+651,Barbara,Schippani,0,28,
+652,Antonio,Romero,0,35,
+653,Antonin,Lauterkranz,42,21,2014-01-02
+654,Anjali,Nair,43,13,2021-11-21
+655,Anilton,Moreira,0,26,
+656,Anette,Karlsen,0,7,
+657,Andrik,Selina,0,4,
+658,Andreas,Schaible,0,1,
+659,Alice,Garcia,0,1,
+660,Alfonso,Morales,43,14,2015-06-29
+661,Alexandre,Jues,0,7,
+662,Alexandre,Silva,0,1,
+663,Alexandra,Radojewski,40,9,2017-07-01
+664,Aldo Kalet,Quintero Cuevas,29,14,2024-01-15
+665,Akis,Stekas,0,28,
+666,Adriane,Baquerizo,0,1,
+667,Adriana,Lopez,0,1,
+668,Abdessamad,Salhi,0,28,
+669,Sarah,Berger,6,8,2021-10-15
+671,Russel,Magweva,0,34,
+672,Roberta,Damico,0,1,
+673,No agent,No agent,0,35,
+674,Marcus,Grossinger,0,5,
+675,Julueta,Neh,0,9,
+676,Renata,Mitkstacka,0,22,
+774,Juan Facundo,Colombo,0,9,2024-07-01
+775,Adrian,de Souza,0,45,
+776,Franziska,Bein,0,9,
+777,Justin,Jose,0,13,
+778,Nabil,L.,41,7,2025-05-05
+779,Rajani,Devi,0,45,
+780,Richard,Adriano,0,44,
+781,Rosita,Dalbon,0,1,
+782,Teresa,Reeh,0,45,
+783,Tina,Hellmann,0,45,
+784,William,Gallard,3,1,2025-05-19
+785,Simon,Stieglbauer,45,1,2025-06-01
+786,Hubert,Kaczmarek,0,20,
+787,Aleksandra,Rajkiewicz,0,22,
+788,Inés,Velasco,0,1,2025-06-01
+789,Enrique,Ballesteros,0,1,2025-06-01
+790,Alicia,Alonso,0,1,2025-06-01
+791,Federica,Bison,3,1,2025-06-01
+792,Mikolaj,Baran,0,58,
+793,Catherine,Ndanu,0,22,
+794,Darlandra,Williams,0,35,
+795,Partners,Partners,0,35,
+799,Marina,Schinitter,0,53,
+800,Javier,Gil Martinez,0,1,
+801,Matteo,Gervasi,0,1,
+803,Nicolas,Cabrera,0,1,
+804,Aleksandra,Gluch,0,61,
+805,Raquel,Hernandez,0,57,
+807,Alexis,Fradelizio,0,1,2025-06-01
+808,Angelica,Frattin,1,1,2025-06-01
+809,Wael,Saleh,0,1,2025-06-01
+810,Anabell,Dominguez Suarez,1,1,2025-06-01
+811,Jan,Skrzeczkowski,0,58,
+812,Mostafa,Shehata,0,22,
+813,Olga,Korniyenko,0,60,
+814,Sowel,Saleh,44,16,2024-03-01
+815,Arkadiusz,Maciak,0,58,
+816,Anthony,Den Drjver,44,16,
+817,Imane,Elkessi,41,7,
+818,Maciej Stanislaw,Mikulski,0,60,
+819,Marta,Hirsz,0,58,
+820,Cindy,Caicedo,13,9,2025-08-04
+821,Kiryl,Kvasouka,0,60,
+822,Lucky,Okocha,0,65,
+823,Kevin,Collignon,0,15,
+824,Jeannine,Vyver,0,8,
+825,Jaime,Mendoza,0,1,
+827,Specialist - ,L2 Customer Support,0,21,
+829,Mateusz,Kurzyp,0,58,
+830,Sebastian,Czarnik,0,58,
+831,Katarzyna,Jamii,0,58,
+832,Andrea,Secci,45,1,2025-10-13
+833,Alejandra Sofia,Perez,0,1,2025-10-13
+834,Tania,Dina,45,1,2026-01-01
+835,Ivana,Pirkovska,3,1,2025-10-13
+836,Abel,Nunez Alonso,45,1,2025-12-13
+838,Laoura,Moutsana,0,1,2025-11-03
+839,Dario,Matias Bertotti,1,1,2025-10-13
+840,Alex,Stubbs,41,7,2025-10-06
+841,Kamilla,Klepacka,25,7,2025-10-06
+842,Katerina,Kotsomiti,0,22,
+843,Prabha,Srikant,43,13,2019-06-16
+844,Jhovan,Esquivel,0,14,
+845,Jeff,Cheng,43,12,2023-12-19
+846,Jenkin Maurice,Kam,43,12,2025-01-06
+847,Magdalena,Nowak,43,12,2024-02-01
+848,Laurent,Remy,44,16,
+849,Yu,Mo,43,13,2021-09-28
+851,Seval,Erarslan,12,11,
+852,Nils,Ritter,12,10,
+853,Damaris,Zwingert,12,10,
+854,Simone,Gommert,40,9,
+855,Marina,Gagro,40,9,
+856,Kai,Schwarz,40,9,
+857,Helen,Wolff,40,9,
+858,Denise,Kareth,40,9,
+859,Athanasios,Tsartsampalidis,40,9,
+860,Adil,Karmas,32,23,
+863,Daniel,Starke,24,5,

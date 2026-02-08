@@ -1,0 +1,21 @@
+﻿# Ignore sensitive operational input data
+input_model/
+outputs/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
+
+# VSCode settings
+.vscode/
+
+# Environment variables
+.env
+*.env
+
+# System files
+.DS_Store
+Thumbs.db
