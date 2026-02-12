@@ -1,8 +1,4 @@
-﻿# Ignore sensitive operational input data
-input_model/
-outputs/
-
-# Python cache
+﻿# Python cache
 __pycache__/
 *.pyc
 
