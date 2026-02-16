@@ -1,100 +1,83 @@
-# 📘 Forecasting Model Evaluation and Ensemble Approach
-## Overview
-This project evaluates daily ticket‑volume forecasting models across multiple departments and verticals (Hospitality, Partners, and Payments). The goal is to identify the most accurate forecasting method for each department and build a weighted ensemble that improves robustness and prediction stability for capacity‑planning purposes.
-The models evaluated include:
+# Capacity & Ticket Forecasting Model — v17.3
+This repository contains the corporate_hybrid_forecast_v17_3 model, an end‑to‑end framework that forecasts ticket volumes for Payments, Partners, and Hospitality verticals, and generates department‑level operational capacity boards for Jan‑2026 → Feb‑2027.
+The pipeline integrates forecasting engines (STL/SARIMAX), bias calibration, Einstein deduction, agent‑based capacity modeling, inventory enrichment, and a complete export system.
 
-ARIMA
-Prophet
-TBATS / ETS (including ETS Damped Trend)
-Weighted Ensemble based on cross‑validated performance
-
-Performance is measured using sMAPE (Symmetric Mean Absolute Percentage Error) under cross‑validation.
-
-## Dataset
-Each row in the results corresponds to a department and includes:
-
-department_id
-department_name
-vertical (Hospitality / Partners / Payments)
-Cross‑validated sMAPE for:
-
-Prophet
-ARIMA
-TBATS_ETS
-
-
-Best_Model chosen based on lowest CV error
-Ensemble weights:
-
-Weight_Prophet
-Weight_ARIMA
-Weight_TBATS_ETS
+## 📐 Pipeline Diagram (Markdown‑Friendly)
+<img width="393" height="2268" alt="image" src="https://github.com/user-attachments/assets/ab52b73f-b690-411f-8f70-9db43b129793" />
 
 
 
 
-## Key Findings
-1. ARIMA performs best in most cases
-ARIMA is the most frequently selected “best model,” especially in Hospitality and several Payment departments.
-It performs particularly well when the time series is stable with moderate trend and limited structural breaks.
-2. TBATS/ETS excels in seasonal or irregular patterns
-TBATS/ETS (including ETS Damped Trend) performs best when:
-
-Seasonality is more complex
-The series has smoother long‑term patterns
-This happens frequently in the Partners vertical.
-
-3. Prophet rarely dominates
-Prophet only outperforms other models in specific cases, usually when:
-
-There is a clear long‑term trend
-Weekly seasonality is stable
-No strong noise or spikes are present
-Its performance tends to worsen in highly irregular daily data.
-
-4. Partners is the most predictable vertical
-Most departments in Partners achieve sMAPE between 15–40%, indicating strong forecastability.
-5. Hospitality contains the noisiest series
-Some Hospitality sub‑departments show extremely high variability, with sMAPE exceeding 100%.
-These may require:
-
-Weekly aggregation
-Outlier smoothing
-Alternative modelling techniques
 
 
-## Ensemble Behavior
-The ensemble weights reflect each model’s relative performance in cross‑validation:
-
-ARIMA typically receives the highest weight (0.30–0.40).
-TBATS/ETS often receives strong weight (0.30–0.46) when it closely matches ARIMA performance.
-Prophet contributes less frequently and usually with weights < 0.20.
-
-The ensemble improves prediction stability by avoiding reliance on a single model, especially in noisy departments.
-
-## Interpretation of sMAPE Values
-General guidance:
-
-< 30% → Excellent
-30–50% → Good and operationally useful
-50–80% → Acceptable for planning but indicates instability
-> 100% → Very noisy series; consider transformation or redesign
 
 
-Recommendations
-
-Weekly aggregation for high‑noise departments.
-Outlier detection and correction before model training.
-Hybrid modelling (e.g., LightGBM with temporal features) for extremely irregular patterns.
-Introduce a naive baseline for clearer performance comparison.
-Use ensemble predictions for all departments to maximize stability.
 
 
-## Conclusion
-This evaluation demonstrates that no single model dominates across all domains.
-However, the weighted ensemble approach provides consistent and resilient forecasts, which is ideal for capacity planning at multi‑vertical scale.
-The results highlight:
 
-ARIMA → strong baseline for stable patterns
-TBATS/ETS → best for seasonal or smoothed trends
-Ensemble → overall best choice for operational planning
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Areav17.2v17.3Agents‑based capacity❌ No✅ Yes — new and robust methodEinstein deductionBasicImproved 3‑month rolling avgBias calibrationManualAutomatic, standardized tableDaily model failuresWeak fallbackFull fault‑tolerant pipelineSheet sanitizationLimitedStrong sanitization & indexingBoard generationPartialComplete, validated, saferQuantile guardinconsistentstrict monotonicity check
+
+13. Limitations & Future Work
+
+Backtesting not automated yet (manual Model_Used_and_Error)
+No hierarchical reconciliation across departments
+Ensemble method could be added
+Agent productivity may require anomaly detection
+Extended language‑based forecasting may be added (we intentionally ignore language per your specifications)
+
+
+14. How to Run
+Shellpython model_v17_3.pyMostrar más líneas
+Outputs will be created under:
+/outputs/capacity_forecast_v17_3.xlsx
+
+
+15. Author & Context
+The model was co‑designed for Continuous Improvement operations in Payments, Partners, Hospitality verticals, with focus on:
+
+Accurate demand forecasting
+Reliable capacity estimation
+Simplified operational communication
+Robustness against noisy ticket patterns
+Easy integration into planning discussions
+
+
+If you'd like, I can also generate:
+✅ A shorter README version
+✅ A diagram of the full pipeline
+✅ A CONTRIBUTING.md or architecture.md
+✅ A GitHub Wiki structure
+Just tell me what format you prefer.
+Orígenes
