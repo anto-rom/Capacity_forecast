@@ -1,19 +1,65 @@
-# Capacity & Ticket Forecasting Model — v17.3
-This repository contains the corporate_hybrid_forecast_v17_3 model, an end‑to‑end framework that forecasts ticket volumes for Payments, Partners, and Hospitality verticals, and generates department‑level operational capacity boards for Jan‑2026 → Feb‑2027.
+# **Capacity & Ticket Forecasting Model — v17.3**
+
+This repository contains the **corporate_hybrid_forecast_v17_3** model, an end‑to‑end framework that forecasts ticket volumes for **Payments, Partners, and Hospitality** verticals, and generates department‑level operational capacity boards for **Jan‑2026 → Feb‑2027**.
+
 The pipeline integrates forecasting engines (STL/SARIMAX), bias calibration, Einstein deduction, agent‑based capacity modeling, inventory enrichment, and a complete export system.
 
-## 📐 Pipeline Diagram (Markdown‑Friendly)
-<img width="393" height="2268" alt="image" src="https://github.com/user-attachments/assets/ab52b73f-b690-411f-8f70-9db43b129793" />
+---
 
-1. Overview
-The model transforms raw ticket and agent data into:
+# 📐 **Pipeline Diagram**
 
-Accurate monthly ticket forecasts
-Einstein‑adjusted and bias‑calibrated demand
-Agent‑driven capacity & productivity metrics
-Department‑level operational boards
-PowerBI/analytics-ready consolidated dataset
+```mermaid
+flowchart TD
 
+A[1. Load Inputs\nIncoming_new, Dept Map,\nAgents, Einstein, Inventory] --> B
+
+B[2. Preprocessing & Cleaning\n- Normalize headers\n- Filter verticals\n- Remove excluded departments] --> C
+
+C[3. Daily Forecast Engines\nSTL Baseline / SARIMAX-7\n+ fallback logic] --> D
+
+D[4. Daily → Monthly Aggregation\nSum p50/p05/p95\nValidate quantiles] --> E
+
+E[5. Einstein Deduction\n3‑month solved-rate smoothing\nApply deduction & clipping] --> F
+
+F[6. Bias-Based Calibration\nApply bias table\nClip calib_factor 0.70–1.30] --> G
+
+G[7. Agents KPIs Extraction\ncapacity_agents\nproductivity_agents] --> H
+
+H[8. Historical Capacity Merge\nFill future months\nUse fallback logic] --> I
+
+I[9. Build long_dept Table\nForecast + Actuals + Capacity + Productivity + Inventory] --> J
+
+J[10. Build Board_[dept]_2627\nFull KPI matrix for 2026–2027] --> K
+
+K[11. Build consolidated\ncapacity_forecast Long Table] --> L
+
+L[12. Export to Excel\nSanitized sheet names\nReplace or create sheets]
+``
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+FilePurposeeinstein.xlsxEinstein-solved ticketsinventory_month.xlsxDaily open ticket inventoryagent_language_n_target.xlsxHistorical capacity (fallback)productivity_agents.xlsxAgent productivity & target data
 
 2. Architecture
 Full pipeline sections:
