@@ -15,3 +15,8 @@ __pycache__/
 # System files
 .DS_Store
 Thumbs.db
+
+# confidential data
+/input
+/outputs
+/old versions
