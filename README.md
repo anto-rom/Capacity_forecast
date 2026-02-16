@@ -9,57 +9,7 @@ The pipeline integrates forecasting engines (STL/SARIMAX), bias calibration, Ein
 
 # 📐 **Pipeline Diagram**
 
-```mermaid
-flowchart TD
-
-A[1. Load Inputs
-Incoming_new, Dept Map,
-Agents, Einstein, Inventory] --> B
-
-B[2. Preprocessing & Cleaning
-- Normalize headers
-- Filter verticals
-- Remove excluded departments] --> C
-
-C[3. Daily Forecast Engines
-STL Baseline / SARIMAX-7
-+ fallback logic] --> D
-
-D[4. Daily → Monthly Aggregation
-Sum p50/p05/p95
-Validate quantiles] --> E
-
-E[5. Einstein Deduction
-3‑month solved-rate smoothing
-Apply deduction & clipping] --> F
-
-F[6. Bias-Based Calibration
-Apply bias table
-Clip calib_factor 0.70–1.30] --> G
-
-G[7. Agents KPIs Extraction
-capacity_agents
-productivity_agents] --> H
-
-H[8. Historical Capacity Merge
-Fill future months
-Use fallback logic] --> I
-
-I[9. Build long_dept Table
-Forecast + Actuals + Capacity + Productivity + Inventory] --> J
-
-J[10. Build Board_[dept]_2627
-Full KPI matrix for 2026–2027] --> K
-
-K[11. Build consolidated
-capacity_forecast Long Table] --> L
-
-L[12. Export to Excel
-Sanitized sheet names
-Replace or create sheets]
-```
-
----
+<img width="393" height="2268" alt="image" src="https://github.com/user-attachments/assets/015e87e6-5358-42b8-9ad1-6f0ddec394da" />
 
 # **1. Overview**
 
