@@ -747,7 +747,13 @@ def build_dept_matrix_range(long_dept_in: pd.DataFrame, department_name: str) ->
     row_prod_num = pd.to_numeric(row_prod, errors='coerce')
     with np.errstate(divide='ignore', invalid='ignore'):
         diff_cap_prod = ((row_capacity_num - row_prod_num) / row_capacity_num * 100.0)
-    row_diff_cap_prod = diff_cap_prod.round(0).fillna(0).astype(int).astype(str) + '%'
+    row_diff_cap_prod = (
+        pd.to_numeric(diff_cap_prod, errors="coerce")          # fuerza numérico, no-numérico -> NaN
+        .replace([np.inf, -np.inf], np.nan)                  # inf -> NaN
+        .round(0)
+        .fillna(0)
+        .astype("int64")
+    )
 
     row_exp_vs_cap = to_row_range((base['forecast'] - base['capacity']).round(0), base['month'], labels)
 
