@@ -30,7 +30,7 @@ DEPT_MAP_PATH = os.path.join(INPUT_DIR, 'department.xlsx')
 DEPT_MAP_SHEET = 'map'
 AGENT_CAPACITY_PATH = os.path.join(INPUT_DIR, 'agent_language_n_target.xlsx')
 EINSTEIN_PATH = os.path.join(INPUT_DIR, 'einstein.xlsx')
-INVENTORY_PATH = os.path.join(INPUT_DIR, 'inventory_month.xlsx')
+INVENTORY_DAILY_PATH = os.path.join(INPUT_DIR, 'inventory_daily.xlsx')
 PRODUCTIVITY_AGENTS_PATH = os.path.join(INPUT_DIR, 'productivity_agents.xlsx')
 
 # NEW: Calls not indexed input
@@ -89,6 +89,55 @@ def validate_quantiles(dfm):
 def safe_int_series(s):
     """Convert to integer-like safely (keeps NaN)."""
     return pd.to_numeric(s, errors='coerce')
+
+def forecast_monthly_inventory_baseline(y: pd.Series, horizon_months: int = 12):
+    """
+    Monthly inventory forecast:
+    - baseline STL on log1p (12-month seasonality)
+    - fallback: last-value naive if series too short
+    Returns DataFrame with columns: ['month','p50','p05','p95'].
+    """
+    y = y.asfreq('MS').fillna(0)
+
+    if len(y) < 18:
+        idx = pd.date_range(y.index[-1] + pd.DateOffset(months=1), periods=horizon_months, freq='MS')
+        last = float(y.iloc[-1]) if len(y) else 0.0
+        p50 = np.array([max(0.0, last)] * horizon_months)
+        std = float(np.std(y.values)) if len(y) > 1 else max(1.0, np.sqrt(max(last, 1.0)))
+        p05 = np.clip(p50 - 1.645 * std, 0, None)
+        p95 = p50 + 1.645 * std
+        return pd.DataFrame({'month': idx, 'p50': p50, 'p05': p05, 'p95': p95})
+
+    try:
+        from statsmodels.tsa.seasonal import STL
+        y_box = np.log1p(y)
+        stl = STL(y_box, period=12, robust=True)
+        res = stl.fit()
+
+        trend = res.trend
+        seas = res.seasonal
+        resid = res.resid
+
+        last_trend = float(trend.iloc[-1])
+        std = float(resid.std()) if float(resid.std()) > 0 else 0.5
+
+        idx = pd.date_range(y.index[-1] + pd.DateOffset(months=1), periods=horizon_months, freq='MS')
+        seas_fut = np.resize(seas[-12:].to_numpy(), horizon_months)
+        mu_log = last_trend + seas_fut
+
+        p50 = np.expm1(mu_log); p50 = np.clip(p50, 0, None)
+        p05 = np.expm1(mu_log - 1.645 * std); p05 = np.clip(p05, 0, None)
+        p95 = np.expm1(mu_log + 1.645 * std)
+
+        return pd.DataFrame({'month': idx, 'p50': p50, 'p05': p05, 'p95': p95})
+    except Exception:
+        idx = pd.date_range(y.index[-1] + pd.DateOffset(months=1), periods=horizon_months, freq='MS')
+        last = float(y.iloc[-1]) if len(y) else 0.0
+        p50 = np.array([max(0.0, last)] * horizon_months)
+        std = float(np.std(y.values)) if len(y) > 1 else max(1.0, np.sqrt(max(last, 1.0)))
+        p05 = np.clip(p50 - 1.645 * std, 0, None)
+        p95 = p50 + 1.645 * std
+        return pd.DataFrame({'month': idx, 'p50': p50, 'p05': p05, 'p95': p95})
 
 # -----------------------------
 # 3) Forecast engines (Baseline/STL + SARIMAX-7)
@@ -312,6 +361,90 @@ if APPLY_CALLS_NOT_INDEXED_TO_TRAINING and not calls_ni_month.empty:
     monthly_actuals = monthly_actuals.drop(columns=['calls_not_indexed'])
 
 print('Loaded incoming rows =', len(incoming))
+
+# -----------------------------
+# 4e) Inventory: build monthly inherited_cases (prefer daily if available)
+# -----------------------------
+inventory_month = pd.DataFrame(columns=['department_id', 'month', 'inventory'])
+
+def _first_day_of_month(s):
+    """Return month start for a datetime-like series (MS frequency)."""
+    return pd.to_datetime(s, errors='coerce').dt.to_period('M').dt.to_timestamp(how='start')
+
+# 1) Preferred source: inventory_daily.xlsx
+if Path(INVENTORY_DAILY_PATH).exists():
+    invd = pd.read_excel(INVENTORY_DAILY_PATH, engine='openpyxl')
+    std_cols(invd)
+
+    c_dept = pick_col(invd, ['department_id', 'dept_id', 'Department_ID'])
+    c_date = pick_col(invd, ['Date', 'date'])
+    c_case = pick_col(invd, ['case_number', 'Case Number', 'case', 'Case'])
+    c_open = pick_col(invd, ['date_opened', 'Date Opened', 'opened_date', 'Opened Date'])
+    c_status = pick_col(invd, ['status', 'Status'])
+
+    if c_dept is None or c_date is None or c_case is None or c_open is None:
+        raise KeyError(
+            "inventory_daily.xlsx must contain department_id, Date, case_number and date_opened columns."
+        )
+
+    invd['department_id'] = pd.to_numeric(invd[c_dept], errors='coerce').astype('Int64')
+    invd['date'] = pd.to_datetime(invd[c_date], errors='coerce')
+    invd['month'] = _first_day_of_month(invd['date'])
+    invd['case_number'] = invd[c_case].astype(str).str.strip()
+    invd['date_opened'] = pd.to_datetime(invd[c_open], errors='coerce')
+
+    # Snapshot rows: only first day of each month
+    invd['is_month_start'] = invd['date'].dt.to_period('M').dt.to_timestamp(how='start') == invd['date']
+
+    snap = invd[invd['is_month_start']].copy()
+
+    # Inherited cases definition:
+    # Cases opened before month start and still present in inventory on month start.
+    snap = snap[snap['date_opened'] < snap['date']]
+
+    # Optional: if status exists and you want to exclude closed/resolved snapshots (safety)
+    if c_status is not None:
+        snap['status_norm'] = snap[c_status].astype(str).str.lower().str.strip()
+        snap = snap[~snap['status_norm'].isin(['closed', 'resolved'])]
+
+    # IMPORTANT: avoid duplicates (same case_number can appear multiple times due to multiple milestones)
+    inventory_month = (
+        snap.groupby(['department_id', 'month'], as_index=False)
+            .agg(inventory=('case_number', lambda x: x.nunique()))
+    )
+
+    print('Inventory monthly built from inventory_daily.xlsx → rows:', len(inventory_month))
+
+# 2) Fallback source: inventory_month.xlsx (department_id, month_start, inherited_cases)
+elif Path(INVENTORY_PATH).exists():
+    invm = pd.read_excel(INVENTORY_PATH, engine='openpyxl')
+    std_cols(invm)
+
+    c_dept = pick_col(invm, ['department_id', 'dept_id', 'Department_ID'])
+    c_month = pick_col(invm, ['month_start', 'Month_Start', 'month', 'Month', 'date', 'Date'])
+    c_inv = pick_col(invm, ['inherited_cases', 'Inherited_Cases', 'inventory', 'Inventory', 'backlog', 'Backlog'])
+
+    if c_dept is None or c_month is None or c_inv is None:
+        raise KeyError(
+            "inventory_month.xlsx must contain department_id, month_start and inherited_cases columns."
+        )
+
+    inventory_month = invm[[c_dept, c_month, c_inv]].copy()
+    inventory_month.columns = ['department_id', 'month', 'inventory']
+    inventory_month['department_id'] = pd.to_numeric(inventory_month['department_id'], errors='coerce').astype('Int64')
+    inventory_month['month'] = _first_day_of_month(inventory_month['month'])
+    inventory_month['inventory'] = pd.to_numeric(inventory_month['inventory'], errors='coerce').fillna(0)
+
+    inventory_month = (
+        inventory_month.groupby(['department_id', 'month'], as_index=False)
+                       .agg(inventory=('inventory', 'sum'))
+    )
+
+    print('Inventory monthly loaded from inventory_month.xlsx → rows:', len(inventory_month))
+
+else:
+    print('INFO: No inventory_daily.xlsx or inventory_month.xlsx found → inventory will be empty.')
+
 
 # -----------------------------
 # 5) Recommended model mapping
@@ -580,6 +713,46 @@ monthly_adj['repeats_rate_recent'] = pd.to_numeric(
 monthly_adj['repeats_forecast'] = monthly_adj['forecast_monthly_dept'] * monthly_adj['repeats_rate_recent']
 
 # -----------------------------
+# 9c) Inventory: forecast and attach to monthly_adj
+# -----------------------------
+inventory_fc = pd.DataFrame(columns=['department_id', 'month', 'inventory_forecast'])
+
+if not inventory_month.empty:
+    inv_fc_rows = []
+    for dpt_id, g in inventory_month.groupby('department_id'):
+        y = g.set_index('month')['inventory'].sort_index()
+        y = pd.to_numeric(y, errors='coerce').fillna(0)
+        fc = forecast_monthly_inventory_baseline(y, horizon_months=HORIZON_MONTHS)
+
+        tmp = fc[['month', 'p50']].copy()
+        tmp['department_id'] = dpt_id
+        tmp = tmp.rename(columns={'p50': 'inventory_forecast'})
+        inv_fc_rows.append(tmp)
+
+    inventory_fc = pd.concat(inv_fc_rows, ignore_index=True) if inv_fc_rows else inventory_fc
+
+# Attach actual inventory (history) + forecast (future)
+monthly_adj = monthly_adj.merge(
+    inventory_month.rename(columns={'inventory': 'inventory_actual'}),
+    on=['department_id', 'month'],
+    how='left'
+)
+
+monthly_adj = monthly_adj.merge(
+    inventory_fc,
+    on=['department_id', 'month'],
+    how='left'
+)
+
+# Final inventory value per month:
+# - use actual where available
+# - otherwise use forecast
+monthly_adj['inventory_final'] = monthly_adj['inventory_actual']
+mask = monthly_adj['inventory_final'].isna()
+monthly_adj.loc[mask, 'inventory_final'] = monthly_adj.loc[mask, 'inventory_forecast']
+monthly_adj['inventory_final'] = pd.to_numeric(monthly_adj['inventory_final'], errors='coerce').fillna(0)
+
+# -----------------------------
 # 10) Bias-based calibration (same approach as before)
 # -----------------------------
 model_used_error_df = pd.DataFrame([
@@ -644,6 +817,26 @@ fc_board['einstein_solved_forecast'] = fc_board['forecast_base'] * fc_board['ein
 
 # Calls not indexed forecast (future)
 fc_board['calls_not_indexed_forecast'] = pd.to_numeric(fc_board['calls_not_indexed_forecast'], errors='coerce').fillna(0)
+
+# Add inventory to fc_board if present
+fc_board = monthly_adj.copy()
+fc_board['inventory_final'] = pd.to_numeric(fc_board.get('inventory_final', 0), errors='coerce').fillna(0)
+
+long_dept = (
+    fc_board[[
+        'vertical', 'department_id', 'department_name', 'month',
+        'forecast_base',
+        'forecast_human_cases_cal',
+        'einstein_rate_recent', 'einstein_solved_forecast',
+        'calls_not_indexed_rate_recent', 'calls_not_indexed_forecast',
+        'inventory_final'
+    ]]
+    .merge(
+        monthly_actuals[['vertical', 'department_id', 'department_name', 'month', 'actual_volume']],
+        on=['vertical', 'department_id', 'department_name', 'month'],
+        how='left'
+    )
+)
 
 # Attach actuals
 long_dept = (
@@ -752,15 +945,22 @@ cap_wide = cap_wide.rename(columns={
     'month': 'Month',
     'vertical': 'Vertical',
     'department_name': 'Department_name',
+    'inventory_final': 'Inventory',
+    'calls_not_indexed_actual': 'Calls not indexed (actual)',
+    'calls_not_indexed_forecast': 'Calls not indexed (forecast)',
     'actual_volume': 'Actual Volume',
     'forecast_base': 'Forecast (Cases)',
     'forecast_human_cases_cal': 'Forecast after Einstein (Human cases)',
     'einstein_solved_forecast': 'Einstein solved forecast',
-    'calls_not_indexed_actual': 'Calls not indexed (actual)',
-    'calls_not_indexed_forecast': 'Calls not indexed (forecast)',
     'repeats_actual': 'Repeats (actual)',
     'repeats_forecast': 'Repeats (forecast)',
 })
+
+# Inventory column for the board
+cap_wide['Inventory'] = pd.to_numeric(
+    cap_wide.get('inventory_final', 0),
+    errors='coerce'
+).fillna(0)
 
 # =============================
 # Null safety
@@ -793,12 +993,18 @@ cap_wide['Actual Workload (Cases + calls not indexed + repeats)'] = (
 )
 
 # =============================
-# Forecast workload for staffing
+# Forecast workload for staffing (INCLUDING inventory)
 # =============================
-cap_wide['Workload Forecast (Humans + calls not indexed + repeats)'] = (
+cap_wide['Workload Forecast (Humans + calls not indexed + repeats + inventory)'] = (
     cap_wide['Forecast after Einstein (Human cases)'].fillna(0)
     + cap_wide['Calls not indexed (forecast)']
     + cap_wide['Repeats (forecast)']
+    + cap_wide['Inventory']
+)
+
+cap_wide['Expected Workload vs Capacity'] = (
+    cap_wide['Workload Forecast (Humans + calls not indexed + repeats + inventory)']
+    - cap_wide['Capacity']
 )
 
 # =============================
