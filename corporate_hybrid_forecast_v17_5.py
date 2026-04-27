@@ -37,6 +37,12 @@ PRODUCTIVITY_AGENTS_PATH = os.path.join(INPUT_DIR, 'productivity_agents.xlsx')
 CALL_NOT_INDEXED_PATH = os.path.join(INPUT_DIR, 'calls_not_indexed.xlsx')
 CALL_NOT_INDEXED_FALLBACK_XLSM = os.path.join(INPUT_DIR, 'calls_not_indexed.xlsm')
 
+REPEATS_PATH = os.path.join(INPUT_DIR, 'repeats.xlsx')
+REPEATS_FALLBACK_XLSM = os.path.join(INPUT_DIR, 'repeats.xlsm')
+
+# If True: add repeats to history "actual_volume" (only if you want the training signal uplifted)
+APPLY_REPEATS_TO_TRAINING = False  # recommended: keep
+
 OUTPUT_XLSX = os.path.join(OUTPUT_DIR, 'capacity_forecast_v17_5.xlsx')
 
 HORIZON_MONTHS = 12
@@ -254,9 +260,43 @@ if cni_path is not None:
         agg = agg.rename(columns={'size': 'calls_not_indexed'})
 
     calls_ni_month = agg.copy()
+# -----------------------------
+# 4c) Load Repeats and build monthly series
+# -----------------------------
+
+repeats_month = pd.DataFrame(columns=['department_id', 'month', 'repeats_workload'])
+
+rpt_path = None
+if Path(REPEATS_PATH).exists():
+    rpt_path = REPEATS_PATH
+elif Path(REPEATS_FALLBACK_XLSM).exists():
+    rpt_path = REPEATS_FALLBACK_XLSM
+
+if rpt_path is not None:
+    rr = pd.read_excel(rpt_path, engine='openpyxl')
+    std_cols(rr)
+
+    rr_dept = pick_col(rr, ['department_id', 'dept_id', 'Department_ID', 'department'])
+    rr_date = pick_col(rr, ['Date', 'date', 'Month', 'month', 'MonthDate'])
+    rr_val  = pick_col(rr, [
+        'repeat_touchpoints', 'repeats', 'repeat_items', 'RR', 'rr_items', 'total_touchpoints_7d'
+    ])
+
+    if rr_dept is not None and rr_date is not None and rr_val is not None:
+        tmp = rr[[rr_dept, rr_date, rr_val]].copy()
+        tmp.columns = ['department_id', 'date', 'repeats_workload']
+        tmp['department_id'] = pd.to_numeric(tmp['department_id'], errors='coerce').astype('Int64')
+        tmp['date'] = pd.to_datetime(tmp['date'], errors='coerce')
+        tmp['month'] = to_month_start(tmp['date'])
+        tmp['repeats_workload'] = pd.to_numeric(tmp['repeats_workload'], errors='coerce').fillna(0)
+
+        repeats_month = (
+            tmp.groupby(['department_id', 'month'], as_index=False)
+               .agg(repeats_workload=('repeats_workload', 'sum'))
+        )
 
 # -----------------------------
-# 4c) Monthly actuals (optionally uplift by Calls Not Indexed)
+# 4d) Monthly actuals (optionally uplift by Calls Not Indexed)
 # -----------------------------
 monthly_actuals = (
     incoming
@@ -502,6 +542,44 @@ monthly_adj['calls_not_indexed_rate_recent'] = pd.to_numeric(
 monthly_adj['calls_not_indexed_forecast'] = monthly_adj['forecast_monthly_dept'] * monthly_adj['calls_not_indexed_rate_recent']
 
 # -----------------------------
+# 9b) Repeats: compute recent ratio and forecast additional workload
+# -----------------------------
+
+repeats_recent = pd.DataFrame(columns=['department_id', 'repeats_rate_recent'])
+
+if not repeats_month.empty:
+    hist_rr = monthly_actuals.merge(repeats_month, on=['department_id', 'month'], how='left')
+    hist_rr['repeats_workload'] = pd.to_numeric(hist_rr['repeats_workload'], errors='coerce').fillna(0)
+    hist_rr['actual_volume'] = pd.to_numeric(hist_rr['actual_volume'], errors='coerce').fillna(0)
+
+    # Avoid division by zero, cap to keep sanity
+    hist_rr['repeats_rate'] = np.where(
+        hist_rr['actual_volume'] > 0,
+        hist_rr['repeats_workload'] / hist_rr['actual_volume'],
+        0.0
+    )
+
+    # Recent rate: last 3 available months per department (same idea as Einstein/CNI)
+    hist_rr = hist_rr.sort_values(['department_id', 'month'])
+    repeats_recent = (
+        hist_rr.groupby('department_id', as_index=False)
+               .tail(3)
+               .groupby('department_id', as_index=False)
+               .agg(repeats_rate_recent=('repeats_rate', 'mean'))
+    )
+    repeats_recent['repeats_rate_recent'] = pd.to_numeric(
+        repeats_recent['repeats_rate_recent'], errors='coerce'
+    ).fillna(0).clip(0, 5.0)
+
+# Attach to monthly_adj and forecast repeats using base forecast
+monthly_adj = monthly_adj.merge(repeats_recent, on='department_id', how='left')
+monthly_adj['repeats_rate_recent'] = pd.to_numeric(
+    monthly_adj.get('repeats_rate_recent', 0), errors='coerce'
+).fillna(0).clip(0, 5.0)
+
+monthly_adj['repeats_forecast'] = monthly_adj['forecast_monthly_dept'] * monthly_adj['repeats_rate_recent']
+
+# -----------------------------
 # 10) Bias-based calibration (same approach as before)
 # -----------------------------
 model_used_error_df = pd.DataFrame([
@@ -606,12 +684,70 @@ for c in [
 ]:
     if c in long_dept.columns:
         long_dept[c] = pd.to_numeric(long_dept[c], errors='coerce')
+# -----------------------------
+# 12b) Add past months (testimony) to long_dept
+# -----------------------------
+
+# Keys that identify a unique dept-month
+KEYS = ['vertical', 'department_id', 'department_name', 'month']
+
+# ------------------------------------------
+# FILTER: keep historical actuals only for current year
+# ------------------------------------------
+current_year = datetime.now().year
+
+monthly_actuals['month'] = pd.to_datetime(monthly_actuals['month'], errors='coerce')
+
+monthly_actuals = monthly_actuals[
+    monthly_actuals['month'].dt.year == current_year
+]
+
+hist_keys = monthly_actuals[KEYS].drop_duplicates()
+fc_keys = long_dept[KEYS].drop_duplicates()
+
+# Find dept-months that exist in history but not in forecast frame
+hist_only_keys = (
+    hist_keys.merge(fc_keys, on=KEYS, how='left', indicator=True)
+             .query("_merge == 'left_only'")
+             .drop(columns=['_merge'])
+)
+
+if not hist_only_keys.empty:
+    hist_only = hist_only_keys.merge(
+        monthly_actuals[KEYS + ['actual_volume']],
+        on=KEYS,
+        how='left'
+    )
+
+    # Add the forecast-side columns as empty, so schema matches long_dept
+    for c in [
+        'forecast_base',
+        'forecast_human_cases_cal',
+        'einstein_rate_recent', 'einstein_solved_forecast',
+        'calls_not_indexed_rate_recent', 'calls_not_indexed_forecast',
+        'calls_not_indexed_actual',
+        'capacity_agents', 'productivity_agents'
+    ]:
+        if c not in hist_only.columns:
+            hist_only[c] = np.nan
+
+    # Concatenate: past months + existing long_dept (future)
+    long_dept = pd.concat([hist_only, long_dept], ignore_index=True, sort=False)
+
+# Keep ordering clean
+long_dept['month'] = pd.to_datetime(long_dept['month'], errors='coerce')
+long_dept = long_dept.sort_values(['vertical', 'department_name', 'month']).reset_index(drop=True)
 
 # -----------------------------
 # 13) Build export table (capacity_forecast)
 # -----------------------------
+
+# Base frame
 cap_wide = long_dept.copy()
 
+# =============================
+# Rename core columns
+# =============================
 cap_wide = cap_wide.rename(columns={
     'month': 'Month',
     'vertical': 'Vertical',
@@ -621,76 +757,104 @@ cap_wide = cap_wide.rename(columns={
     'forecast_human_cases_cal': 'Forecast after Einstein (Human cases)',
     'einstein_solved_forecast': 'Einstein solved forecast',
     'calls_not_indexed_actual': 'Calls not indexed (actual)',
-    'calls_not_indexed_forecast': 'Calls not indexed (forecast)'
+    'calls_not_indexed_forecast': 'Calls not indexed (forecast)',
+    'repeats_actual': 'Repeats (actual)',
+    'repeats_forecast': 'Repeats (forecast)',
 })
 
-cap_wide['Calls not indexed (actual)'] = cap_wide['Calls not indexed (actual)'].fillna(0)
-cap_wide['Calls not indexed (forecast)'] = cap_wide['Calls not indexed (forecast)'].fillna(0)
+# =============================
+# Null safety
+# =============================
+for c in [
+    'Calls not indexed (actual)',
+    'Calls not indexed (forecast)',
+    'Repeats (actual)',
+    'Repeats (forecast)',
+]:
+    if c not in cap_wide.columns:
+        cap_wide[c] = 0
+    cap_wide[c] = pd.to_numeric(cap_wide[c], errors='coerce').fillna(0)
 
-# NEW: "Actual Volume with calls not indexed"
-# - For history: Actual Volume + Calls not indexed (actual)
-# - For future: Forecast (Cases) + Calls not indexed (forecast)
-cap_wide['Actual Volume with calls not indexed'] = np.where(
-    cap_wide['Actual Volume'].notna(),
-    cap_wide['Actual Volume'].fillna(0) + cap_wide['Calls not indexed (actual)'],
-    cap_wide['Forecast (Cases)'].fillna(0) + cap_wide['Calls not indexed (forecast)']
+cap_wide['Actual Volume'] = pd.to_numeric(
+    cap_wide.get('Actual Volume'), errors='coerce'
 )
 
-# NEW: Workload forecast for staffing (human cases + non-indexed calls)
-cap_wide['Workload Forecast (Humans + not indexed calls)'] = (
+cap_wide['Forecast (Cases)'] = pd.to_numeric(
+    cap_wide.get('Forecast (Cases)'), errors='coerce'
+)
+
+# =============================
+# Actual workload (history)
+# =============================
+cap_wide['Actual Workload (Cases + calls not indexed + repeats)'] = (
+    cap_wide['Actual Volume'].fillna(0)
+    + cap_wide['Calls not indexed (actual)']
+    + cap_wide['Repeats (actual)']
+)
+
+# =============================
+# Forecast workload for staffing
+# =============================
+cap_wide['Workload Forecast (Humans + calls not indexed + repeats)'] = (
     cap_wide['Forecast after Einstein (Human cases)'].fillna(0)
-    + cap_wide['Calls not indexed (forecast)'].fillna(0)
+    + cap_wide['Calls not indexed (forecast)']
+    + cap_wide['Repeats (forecast)']
 )
 
-# Keep placeholders if you later add inventory/capacity/productivity
+# =============================
+# Capacity & productivity (placeholders-safe)
+# =============================
 if 'productivity_agents' in long_dept.columns:
-    cap_wide['Productivity'] = pd.to_numeric(long_dept['productivity_agents'], errors='coerce')
+    cap_wide['Productivity'] = pd.to_numeric(
+        long_dept['productivity_agents'], errors='coerce'
+    )
 else:
     cap_wide['Productivity'] = np.nan
 
 if 'capacity_agents' in long_dept.columns:
-    cap_wide['Capacity'] = pd.to_numeric(long_dept['capacity_agents'], errors='coerce')
+    cap_wide['Capacity'] = pd.to_numeric(
+        long_dept['capacity_agents'], errors='coerce'
+    )
 else:
     cap_wide['Capacity'] = np.nan
 
-cap_wide['Expected Workload vs Capacity'] = cap_wide['Workload Forecast (Humans + not indexed calls)'] - cap_wide['Capacity']
+cap_wide['Expected Workload vs Capacity'] = (
+    cap_wide['Workload Forecast (Humans + calls not indexed + repeats)']
+    - cap_wide['Capacity']
+)
 
+# =============================
+# Final export view
+# =============================
 capacity_forecast_display = cap_wide[[
     'Month', 'Vertical', 'Department_name',
+
+    # History
     'Actual Volume',
     'Calls not indexed (actual)',
-    'Actual Volume with calls not indexed',
+    'Repeats (actual)',
+    'Actual Workload (Cases + calls not indexed + repeats)',
+
+    # Forecast
     'Forecast (Cases)',
     'Calls not indexed (forecast)',
+    'Repeats (forecast)',
     'Einstein solved forecast',
     'Forecast after Einstein (Human cases)',
-    'Workload Forecast (Humans + not indexed calls)',
+    'Workload Forecast (Humans + calls not indexed + repeats)',
+
+    # Staffing
     'Capacity',
     'Productivity',
     'Expected Workload vs Capacity'
 ]].copy()
 
-calls_debug = calls_debug.merge(
-    dept_map[['department_id', 'department_name', 'vertical']],
-    on='department_id',
-    how='left'
-)
-
-calls_debug = calls_debug[
-    ['vertical', 'department_name', 'month',
-     'actual_volume', 'calls_not_indexed', 'calls_not_indexed_rate']
-]
-
+# =============================
+# Export
+# =============================
 with pd.ExcelWriter(OUTPUT_XLSX, engine='openpyxl', mode='w') as writer:
     monthly_adj.to_excel(writer, sheet_name='Monthly_Forecast_CAL', index=False)
     model_used_error_df.to_excel(writer, sheet_name='Model_Used_and_Error', index=False)
     capacity_forecast_display.to_excel(writer, sheet_name='capacity_forecast', index=False)
-    
-    # ✅ Debug / audit sheet for calls not indexed
-    calls_debug.to_excel(
-        writer,
-        sheet_name='Calls_Not_Indexed_Debug',
-        index=False)
-
 
 print('Export complete →', OUTPUT_XLSX)
