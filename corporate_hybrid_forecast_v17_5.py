@@ -59,6 +59,15 @@ print('OUTPUT_XLSX →', OUTPUT_XLSX)
 # -----------------------------
 # 2) Helpers
 # -----------------------------
+def safe_col(df, col, default=0.0):
+    """
+    Return df[col] as numeric Series with fillna,
+    or a scalar default if col does not exist.
+    """
+    if col in df.columns:
+        return pd.to_numeric(df[col], errors='coerce').fillna(default)
+    return default
+
 def pick_col(df, candidates):
     """Pick the first present column from candidates (case-insensitive)."""
     for c in candidates:
@@ -800,28 +809,75 @@ else:
 
 print('Agents-based capacity/productivity rows:', len(cap_prod_month))
 
+## -----------------------------
+# 12) Build long_dept and final export frame (SAFE)
 # -----------------------------
-# 12) Build long_dept and final export frame
-# -----------------------------
+
+# Start from monthly_adj (already includes monthly forecasts, Einstein rate, calibration, etc.)
 fc_board = monthly_adj.copy()
 
-# Forecast (Cases) - total cases demand
-fc_board['forecast_base'] = pd.to_numeric(fc_board['forecast_monthly_dept'], errors='coerce')
+# -----------------------------
+# 12a) Ensure required derived columns exist (avoid KeyError)
+# -----------------------------
 
-# Forecast after Einstein (Human cases) - calibrated
-fc_board['forecast_human_cases_cal'] = pd.to_numeric(fc_board['forecast_monthly_dept_post_einstein_cal'], errors='coerce')
+# 1) Base forecast (raw cases forecast, pre-Einstein)
+if 'forecast_monthly_dept' not in fc_board.columns:
+    raise KeyError("Missing column 'forecast_monthly_dept' in monthly_adj. Check monthly forecast aggregation step.")
+fc_board['forecast_base'] = pd.to_numeric(fc_board['forecast_monthly_dept'], errors='coerce').fillna(0)
 
-# Einstein solved forecast (keep decimals)
-fc_board['einstein_rate_recent'] = pd.to_numeric(fc_board['einstein_rate_recent'], errors='coerce').fillna(0).clip(0, 0.9)
+# 2) Human cases forecast (post-Einstein + calibrated)
+# v17_5 pipeline creates: forecast_monthly_dept_post_einstein_cal
+if 'forecast_monthly_dept_post_einstein_cal' not in fc_board.columns:
+    raise KeyError("Missing column 'forecast_monthly_dept_post_einstein_cal' in monthly_adj. Check Einstein + calibration step.")
+fc_board['forecast_human_cases_cal'] = pd.to_numeric(fc_board['forecast_monthly_dept_post_einstein_cal'], errors='coerce').fillna(0)
+
+# 3) Einstein solved forecast (keep decimals)
+# Einstein rate may be missing depending on upstream logic -> safe fallback to 0
+if 'einstein_rate_recent' not in fc_board.columns:
+    fc_board['einstein_rate_recent'] = 0.0
+fc_board['einstein_rate_recent'] = (
+    pd.to_numeric(fc_board['einstein_rate_recent'], errors='coerce')
+      .fillna(0)
+      .clip(0, 0.9)
+)
 fc_board['einstein_solved_forecast'] = fc_board['forecast_base'] * fc_board['einstein_rate_recent']
 
-# Calls not indexed forecast (future)
+# 4) Calls not indexed forecast / rate safety
+if 'calls_not_indexed_rate_recent' not in fc_board.columns:
+    fc_board['calls_not_indexed_rate_recent'] = 0.0
+fc_board['calls_not_indexed_rate_recent'] = pd.to_numeric(fc_board['calls_not_indexed_rate_recent'], errors='coerce').fillna(0)
+
+if 'calls_not_indexed_forecast' not in fc_board.columns:
+    fc_board['calls_not_indexed_forecast'] = 0.0
 fc_board['calls_not_indexed_forecast'] = pd.to_numeric(fc_board['calls_not_indexed_forecast'], errors='coerce').fillna(0)
 
-# Add inventory to fc_board if present
-fc_board = monthly_adj.copy()
-fc_board['inventory_final'] = pd.to_numeric(fc_board.get('inventory_final', 0), errors='coerce').fillna(0)
+# 5) Inventory safety (inventory_final should exist if you merged it earlier; otherwise default 0)
+if 'inventory_final' not in fc_board.columns:
+    fc_board['inventory_final'] = 0.0
+fc_board['inventory_final'] = pd.to_numeric(fc_board['inventory_final'], errors='coerce').fillna(0)
 
+# 6) Repeats safety (if not implemented upstream yet)
+if 'repeats_rate_recent' not in fc_board.columns:
+    fc_board['repeats_rate_recent'] = 0.0
+fc_board['repeats_rate_recent'] = pd.to_numeric(fc_board['repeats_rate_recent'], errors='coerce').fillna(0)
+
+if 'repeats_forecast' not in fc_board.columns:
+    fc_board['repeats_forecast'] = 0.0
+fc_board['repeats_forecast'] = pd.to_numeric(fc_board['repeats_forecast'], errors='coerce').fillna(0)
+
+# -----------------------------
+# 12b) Attach actuals and build long_dept (dept-month grain)
+# -----------------------------
+
+# Ensure actual_volume exists in monthly_actuals
+if 'actual_volume' not in monthly_actuals.columns:
+    raise KeyError("Missing column 'actual_volume' in monthly_actuals. Check monthly actual aggregation step.")
+
+# Ensure month type alignment
+fc_board['month'] = pd.to_datetime(fc_board['month'], errors='coerce').dt.to_period('M').dt.to_timestamp(how='start')
+monthly_actuals['month'] = pd.to_datetime(monthly_actuals['month'], errors='coerce').dt.to_period('M').dt.to_timestamp(how='start')
+
+# Build long_dept core
 long_dept = (
     fc_board[[
         'vertical', 'department_id', 'department_name', 'month',
@@ -829,6 +885,7 @@ long_dept = (
         'forecast_human_cases_cal',
         'einstein_rate_recent', 'einstein_solved_forecast',
         'calls_not_indexed_rate_recent', 'calls_not_indexed_forecast',
+        'repeats_rate_recent', 'repeats_forecast',
         'inventory_final'
     ]]
     .merge(
@@ -838,24 +895,12 @@ long_dept = (
     )
 )
 
-# Attach actuals
-long_dept = (
-    fc_board[[
-        'vertical', 'department_id', 'department_name', 'month',
-        'forecast_base',
-        'forecast_human_cases_cal',
-        'einstein_rate_recent', 'einstein_solved_forecast',
-        'calls_not_indexed_rate_recent', 'calls_not_indexed_forecast'
-    ]]
-    .merge(
-        monthly_actuals[['vertical', 'department_id', 'department_name', 'month', 'actual_volume']],
-        on=['vertical', 'department_id', 'department_name', 'month'],
-        how='left'
-    )
-)
-
-# Attach calls not indexed actual (history)
-if not calls_ni_month.empty:
+# -----------------------------
+# 12c) Attach calls not indexed actual (history) if available
+# -----------------------------
+# calls_ni_month should be ['department_id','month','calls_not_indexed']
+if 'calls_ni_month' in globals() and isinstance(calls_ni_month, pd.DataFrame) and not calls_ni_month.empty:
+    calls_ni_month['month'] = pd.to_datetime(calls_ni_month['month'], errors='coerce').dt.to_period('M').dt.to_timestamp(how='start')
     long_dept = long_dept.merge(
         calls_ni_month.rename(columns={'calls_not_indexed': 'calls_not_indexed_actual'}),
         on=['department_id', 'month'],
@@ -864,72 +909,53 @@ if not calls_ni_month.empty:
 else:
     long_dept['calls_not_indexed_actual'] = np.nan
 
-# Attach capacity/productivity (agents)
-cap_prod_month['month'] = pd.to_datetime(cap_prod_month['month'], errors='coerce').dt.to_period('M').dt.to_timestamp(how='start')
-long_dept = long_dept.merge(cap_prod_month, on=['department_id', 'month'], how='left')
+# -----------------------------
+# 12d) Attach repeats actual (history) if available (optional)
+# -----------------------------
+# repeats_month should be ['department_id','month','repeats_workload'] if you built it upstream
+if 'repeats_month' in globals() and isinstance(repeats_month, pd.DataFrame) and not repeats_month.empty:
+    repeats_month['month'] = pd.to_datetime(repeats_month['month'], errors='coerce').dt.to_period('M').dt.to_timestamp(how='start')
+    # Use repeats_workload as the "actual repeats workload" (cases)
+    long_dept = long_dept.merge(
+        repeats_month.rename(columns={'repeats_workload': 'repeats_actual'}),
+        on=['department_id', 'month'],
+        how='left'
+    )
+else:
+    long_dept['repeats_actual'] = 0.0
 
-# Ensure numeric
+# Fill numeric safety
 for c in [
+    'actual_volume',
+    'calls_not_indexed_actual', 'calls_not_indexed_forecast',
+    'repeats_actual', 'repeats_forecast',
+    'inventory_final',
     'forecast_base', 'forecast_human_cases_cal',
-    'einstein_rate_recent', 'einstein_solved_forecast',
-    'actual_volume', 'calls_not_indexed_actual',
-    'calls_not_indexed_forecast'
+    'einstein_rate_recent', 'einstein_solved_forecast'
 ]:
     if c in long_dept.columns:
         long_dept[c] = pd.to_numeric(long_dept[c], errors='coerce')
+
 # -----------------------------
-# 12b) Add past months (testimony) to long_dept
+# 12e) Attach capacity/productivity (agents) if available
 # -----------------------------
+# cap_prod_month expected columns: ['department_id','month','capacity_agents','productivity_agents']
+if 'cap_prod_month' in globals() and isinstance(cap_prod_month, pd.DataFrame) and not cap_prod_month.empty:
+    cap_prod_month['month'] = pd.to_datetime(cap_prod_month['month'], errors='coerce').dt.to_period('M').dt.to_timestamp(how='start')
+    long_dept = long_dept.merge(cap_prod_month, on=['department_id', 'month'], how='left')
+else:
+    long_dept['capacity_agents'] = np.nan
+    long_dept['productivity_agents'] = np.nan
 
-# Keys that identify a unique dept-month
-KEYS = ['vertical', 'department_id', 'department_name', 'month']
 
-# ------------------------------------------
-# FILTER: keep historical actuals only for current year
-# ------------------------------------------
-current_year = datetime.now().year
-
-monthly_actuals['month'] = pd.to_datetime(monthly_actuals['month'], errors='coerce')
-
-monthly_actuals = monthly_actuals[
-    monthly_actuals['month'].dt.year == current_year
-]
-
-hist_keys = monthly_actuals[KEYS].drop_duplicates()
-fc_keys = long_dept[KEYS].drop_duplicates()
-
-# Find dept-months that exist in history but not in forecast frame
-hist_only_keys = (
-    hist_keys.merge(fc_keys, on=KEYS, how='left', indicator=True)
-             .query("_merge == 'left_only'")
-             .drop(columns=['_merge'])
+# Final sort
+long_dept = (
+    long_dept
+    .sort_values(['vertical', 'department_name', 'month'])
+    .reset_index(drop=True)
 )
 
-if not hist_only_keys.empty:
-    hist_only = hist_only_keys.merge(
-        monthly_actuals[KEYS + ['actual_volume']],
-        on=KEYS,
-        how='left'
-    )
-
-    # Add the forecast-side columns as empty, so schema matches long_dept
-    for c in [
-        'forecast_base',
-        'forecast_human_cases_cal',
-        'einstein_rate_recent', 'einstein_solved_forecast',
-        'calls_not_indexed_rate_recent', 'calls_not_indexed_forecast',
-        'calls_not_indexed_actual',
-        'capacity_agents', 'productivity_agents'
-    ]:
-        if c not in hist_only.columns:
-            hist_only[c] = np.nan
-
-    # Concatenate: past months + existing long_dept (future)
-    long_dept = pd.concat([hist_only, long_dept], ignore_index=True, sort=False)
-
-# Keep ordering clean
-long_dept['month'] = pd.to_datetime(long_dept['month'], errors='coerce')
-long_dept = long_dept.sort_values(['vertical', 'department_name', 'month']).reset_index(drop=True)
+print('Built long_dept rows:', len(long_dept))
 
 # -----------------------------
 # 13) Build export table (capacity_forecast)
@@ -939,49 +965,66 @@ long_dept = long_dept.sort_values(['vertical', 'department_name', 'month']).rese
 cap_wide = long_dept.copy()
 
 # =============================
-# Rename core columns
+# Rename core columns (one pass only)
 # =============================
 cap_wide = cap_wide.rename(columns={
     'month': 'Month',
     'vertical': 'Vertical',
     'department_name': 'Department_name',
+
+    # Inventory
     'inventory_final': 'Inventory',
+
+    # Calls not indexed
     'calls_not_indexed_actual': 'Calls not indexed (actual)',
     'calls_not_indexed_forecast': 'Calls not indexed (forecast)',
+
+    # Actuals / Forecast
     'actual_volume': 'Actual Volume',
     'forecast_base': 'Forecast (Cases)',
     'forecast_human_cases_cal': 'Forecast after Einstein (Human cases)',
     'einstein_solved_forecast': 'Einstein solved forecast',
+
+    # Repeats
     'repeats_actual': 'Repeats (actual)',
     'repeats_forecast': 'Repeats (forecast)',
 })
 
-# Inventory column for the board
-cap_wide['Inventory'] = pd.to_numeric(
-    cap_wide.get('inventory_final', 0),
-    errors='coerce'
-).fillna(0)
-
 # =============================
-# Null safety
+# Null safety (ALWAYS create missing numeric columns)
 # =============================
-for c in [
+NUM_COLS_DEFAULT_0 = [
+    'Inventory',
     'Calls not indexed (actual)',
     'Calls not indexed (forecast)',
     'Repeats (actual)',
     'Repeats (forecast)',
-]:
+]
+
+for c in NUM_COLS_DEFAULT_0:
     if c not in cap_wide.columns:
-        cap_wide[c] = 0
-    cap_wide[c] = pd.to_numeric(cap_wide[c], errors='coerce').fillna(0)
+        cap_wide[c] = 0.0
+    cap_wide[c] = pd.to_numeric(cap_wide[c], errors='coerce').fillna(0.0)
 
-cap_wide['Actual Volume'] = pd.to_numeric(
-    cap_wide.get('Actual Volume'), errors='coerce'
-)
+# These can be NaN (history/future), keep as numeric Series
+for c in ['Actual Volume', 'Forecast (Cases)', 'Forecast after Einstein (Human cases)', 'Einstein solved forecast']:
+    if c not in cap_wide.columns:
+        cap_wide[c] = np.nan
+    cap_wide[c] = pd.to_numeric(cap_wide[c], errors='coerce')
 
-cap_wide['Forecast (Cases)'] = pd.to_numeric(
-    cap_wide.get('Forecast (Cases)'), errors='coerce'
-)
+# =============================
+# Capacity & Productivity (use columns already merged into long_dept)
+# IMPORTANT: define these BEFORE any "vs Capacity" calculations
+# =============================
+if 'productivity_agents' in cap_wide.columns:
+    cap_wide['Productivity'] = pd.to_numeric(cap_wide['productivity_agents'], errors='coerce')
+else:
+    cap_wide['Productivity'] = np.nan
+
+if 'capacity_agents' in cap_wide.columns:
+    cap_wide['Capacity'] = pd.to_numeric(cap_wide['capacity_agents'], errors='coerce')
+else:
+    cap_wide['Capacity'] = np.nan
 
 # =============================
 # Actual workload (history)
@@ -1007,26 +1050,11 @@ cap_wide['Expected Workload vs Capacity'] = (
     - cap_wide['Capacity']
 )
 
-# =============================
-# Capacity & productivity (placeholders-safe)
-# =============================
-if 'productivity_agents' in long_dept.columns:
-    cap_wide['Productivity'] = pd.to_numeric(
-        long_dept['productivity_agents'], errors='coerce'
-    )
-else:
-    cap_wide['Productivity'] = np.nan
-
-if 'capacity_agents' in long_dept.columns:
-    cap_wide['Capacity'] = pd.to_numeric(
-        long_dept['capacity_agents'], errors='coerce'
-    )
-else:
-    cap_wide['Capacity'] = np.nan
-
-cap_wide['Expected Workload vs Capacity'] = (
-    cap_wide['Workload Forecast (Humans + calls not indexed + repeats)']
-    - cap_wide['Capacity']
+# Optional (if you still want the old column name without inventory for backward-compat visuals)
+cap_wide['Workload Forecast (Humans + calls not indexed + repeats)'] = (
+    cap_wide['Forecast after Einstein (Human cases)'].fillna(0)
+    + cap_wide['Calls not indexed (forecast)']
+    + cap_wide['Repeats (forecast)']
 )
 
 # =============================
@@ -1034,6 +1062,9 @@ cap_wide['Expected Workload vs Capacity'] = (
 # =============================
 capacity_forecast_display = cap_wide[[
     'Month', 'Vertical', 'Department_name',
+
+    # Inventory
+    'Inventory',
 
     # History
     'Actual Volume',
@@ -1047,7 +1078,7 @@ capacity_forecast_display = cap_wide[[
     'Repeats (forecast)',
     'Einstein solved forecast',
     'Forecast after Einstein (Human cases)',
-    'Workload Forecast (Humans + calls not indexed + repeats)',
+    'Workload Forecast (Humans + calls not indexed + repeats + inventory)',
 
     # Staffing
     'Capacity',
