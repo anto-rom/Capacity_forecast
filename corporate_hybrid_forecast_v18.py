@@ -20,15 +20,18 @@ from urllib.parse import quote_plus
 # -----------------------------
 # 1) Configuration
 # -----------------------------
-OUTPUT_DIR = os.getenv("CAPACITY_OUTPUT_DIR", str(Path.cwd() / "outputs"))
-Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
+OUTPUT_DIR = os.getenv(
+    "CAPACITY_OUTPUT_DIR",
+    r"C:\Users\pt3canro\OneDrive - Fintrax Group Holdings\Shared Documents\DATA BASE\CAPACITY\CAPACITY\outputs"
+)
 
 OUTPUT_XLSX = os.path.join(OUTPUT_DIR, "capacity_forecast_v18_SQL.xlsx")
+Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
 
 HORIZON_MONTHS = 12
 HORIZON_DAYS = 365
 
-VERTICALS_TARGET = ["Payments", "Partners", "Hospitality"]
+VERTICALS_TARGET = ["Payments", "Hospitality", "Onboarding"]
 TARGET_TPH = 6.0
 
 EXCLUDE_DEPARTMENT_NAME_TOKENS = ["PROJ", "DIST", "KEY", "PROXIMIS"]
@@ -289,6 +292,12 @@ incoming = incoming.merge(dept_map, on="department_id", how="left")
 
 # Scope & exclusions
 incoming = incoming[incoming["vertical"].isin(VERTICALS_TARGET)].copy()
+
+# Limit Onboarding to OB_CUST only
+incoming = incoming[
+    (incoming["vertical"] != "Onboarding") |
+    (incoming["department_name"] == "OB_CUST")
+].copy()
 
 mask_excl = pd.Series(False, index=incoming.index)
 for tok in EXCLUDE_DEPARTMENT_NAME_TOKENS:
@@ -946,11 +955,17 @@ capacity_forecast_display = cap_wide[[
 ]].copy()
 
 # -----------------------------
-# Export
+# Export to Excel (SharePoint via OneDrive sync)
 # -----------------------------
 with pd.ExcelWriter(OUTPUT_XLSX, engine="openpyxl", mode="w") as writer:
     monthly_adj.to_excel(writer, sheet_name="Monthly_Forecast_CAL", index=False)
     model_used_error_df.to_excel(writer, sheet_name="Model_Used_and_Error", index=False)
     capacity_forecast_display.to_excel(writer, sheet_name="capacity_forecast", index=False)
 
-print("Export complete →", OUTPUT_XLSX)
+if not Path(OUTPUT_XLSX).exists():
+    raise RuntimeError(f"❌ Excel output was not created: {OUTPUT_XLSX}")
+
+print(f"✅ Excel export OK → {OUTPUT_XLSX}")
+
+RUN_DATE = pd.Timestamp.today().normalize()
+capacity_forecast_display["run_date"] = RUN_DATE
