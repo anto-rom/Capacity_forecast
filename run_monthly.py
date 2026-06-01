@@ -1,4 +1,4 @@
-from corporate_hybrid_forecast_v18 import main
+from corporate_hybrid_forecast_v18_automation.py import main
 
 def run():
     out = main()
